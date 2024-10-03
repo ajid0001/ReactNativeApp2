@@ -91,8 +91,12 @@ export default function App() {
             src={item.avatar}
           />
           <View>
-            <Text style={styles.first_name}>{item.first_name}</Text>
-            <Text style={styles.last_name}>{item.last_name}</Text>
+            <Text style={[styles.first_name, { textAlign: "right" }]}>
+              {item.first_name}
+            </Text>
+            <Text style={[styles.last_name, { textAlign: "right" }]}>
+              {item.last_name}
+            </Text>
           </View>
         </>
       )}
@@ -217,10 +221,10 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   modalContent: {
-    width: "35%", 
+    width: "35%",
     backgroundColor: "black",
-    paddingVertical: 10, 
-    paddingHorizontal: 15, 
+    paddingVertical: 10,
+    paddingHorizontal: 15,
     borderRadius: 10,
     alignItems: "center",
   },
