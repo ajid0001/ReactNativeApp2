@@ -1,5 +1,4 @@
-// import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   FlatList,
   SafeAreaView,
@@ -8,6 +7,8 @@ import {
   View,
   TouchableOpacity,
   Platform,
+  Animated,
+  Modal,
 } from "react-native";
 import axios from "axios";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -17,15 +18,16 @@ import { MaterialIcons } from "@expo/vector-icons";
 export default function App() {
   const [users, setUsers] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const slideAnim = useRef(new Animated.Value(300)).current;
 
   // Function to fetch users
   const fetchUsers = () => {
     axios
-      .get("https://random-data-api.com/api/v2/users?size=10") // Fetch multiple users
+      .get("https://random-data-api.com/api/v2/users?size=10")
       .then((response) => {
         setUsers(response.data);
         console.log(response.data);
-        console.log(response.data[0].avatar);
       })
       .catch((error) => {
         console.log(error);
@@ -39,23 +41,28 @@ export default function App() {
 
   const handleRefresh = () => {
     setRefreshing(true);
+    setShowModal(true);
+    slideUp();
+
     axios
       .get("https://random-data-api.com/api/v2/users?size=10")
       .then((response) => {
         setUsers(response.data);
-        console.log("Users refreshed");
-        // alert("Users refreshed");
       })
       .catch((error) => console.log(error))
-      .finally(() => setRefreshing(false));
+      .finally(() => {
+        setRefreshing(false);
+        setTimeout(() => {
+          slideDown();
+        }, 2000);
+      });
   };
 
-  // Function to fetch a single user and add to the top of the list
   const addUser = () => {
     axios
-      .get("https://random-data-api.com/api/v2/users") // Fetch a single user
+      .get("https://random-data-api.com/api/v2/users")
       .then((response) => {
-        setUsers((prevUsers) => [response.data, ...prevUsers]); // Add new user to the top
+        setUsers((prevUsers) => [response.data, ...prevUsers]);
       })
       .catch((error) => {
         console.log(error);
@@ -64,7 +71,7 @@ export default function App() {
 
   const renderItem = ({ item }) => (
     <View style={styles.commentItem}>
-      {Platform.OS === "ios" ? ( // Check for iOS platform
+      {Platform.OS === "ios" ? (
         <>
           <View>
             <Text style={styles.first_name}>{item.first_name}</Text>
@@ -77,7 +84,6 @@ export default function App() {
           />
         </>
       ) : (
-        // For Android platform
         <>
           <UserAvatar
             style={styles.avatar}
@@ -95,14 +101,30 @@ export default function App() {
 
   const keyExtractor = (item) => item.id.toString();
 
+  // Slide-up animation function
+  const slideUp = () => {
+    Animated.timing(slideAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  // Slide-down animation function
+  const slideDown = () => {
+    Animated.timing(slideAnim, {
+      toValue: 300,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => setShowModal(false));
+  };
+
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.container}>
-        {Platform.OS === "ios" ? (
-          <Text style={styles.heading}>Welcome to the User List</Text>
-        ) : (
-          <Text style={styles.headingA}>Welcome to the User List</Text>
-        )}
+        <Text style={Platform.OS === "ios" ? styles.heading : styles.headingA}>
+          Welcome to the User List
+        </Text>
         <FlatList
           data={users}
           renderItem={renderItem}
@@ -113,6 +135,22 @@ export default function App() {
         <TouchableOpacity style={styles.fab} onPress={addUser}>
           <MaterialIcons name="add" size={55} color="white" />
         </TouchableOpacity>
+
+        {/* Modal for refresh feedback */}
+        {showModal && (
+          <Modal transparent visible={showModal} animationType="none">
+            <Animated.View
+              style={[
+                styles.modalContainer,
+                { transform: [{ translateY: slideAnim }] },
+              ]}
+            >
+              <View style={styles.modalContent}>
+                <Text style={styles.modalText}>User(s) loaded</Text>
+              </View>
+            </Animated.View>
+          </Modal>
+        )}
       </SafeAreaView>
     </SafeAreaProvider>
   );
@@ -161,12 +199,34 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: 20,
     bottom: 20,
-    backgroundColor: "#2196F3",
+    backgroundColor: "green",
     borderRadius: 30,
     width: 60,
     height: 60,
     alignItems: "center",
     justifyContent: "center",
     elevation: 5,
+  },
+  modalContainer: {
+    position: "absolute",
+    bottom: 15,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 8,
+  },
+  modalContent: {
+    width: "35%", 
+    backgroundColor: "black",
+    paddingVertical: 10, 
+    paddingHorizontal: 15, 
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  modalText: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "bold",
   },
 });
